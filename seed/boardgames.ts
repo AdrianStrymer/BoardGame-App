@@ -1,4 +1,4 @@
-import {Boardgame} from '../shared/types'
+import {Boardgame, Publisher} from '../shared/types'
 
 export const boardgames : Boardgame[] = [
     {
@@ -37,5 +37,39 @@ export const boardgames : Boardgame[] = [
       description: "A family board game simulating a person's journey through life, from college to retirement, with various paths and financial choices along the way."
     }
   ];
+
+export const publishers: Publisher[] = [
+    {
+      boardgameId: 1,
+      pubName: "Parker Brothers",
+      country: "United States",
+      year_founded: 1883
+    },
+    {
+      boardgameId: 2,
+      pubName: "Hasbro",
+      country: "United States",
+      year_founded: 1923
+    },
+    {
+      boardgameId: 3,
+      pubName: "Waddingtons",
+      country: "United Kingdom",
+      year_founded: 1920
+    },
+    {
+      boardgameId: 4,
+      pubName: "Miro Company",
+      country: "France",
+      year_founded: 1957
+    },
+    {
+      boardgameId: 5,
+      pubName: "Milton Bradley",
+      country: "United States",
+      year_founded: 1860
+    }
+  ];
+  
 
 
