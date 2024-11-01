@@ -34,7 +34,7 @@ export class BoardgameAppStack extends cdk.Stack {
       tableName: "Boardgames",
     });
 
-    new custom.AwsCustomResource(this, "moviesddbInitData", {
+    new custom.AwsCustomResource(this, "boardgamesddbInitData", {
       onCreate: {
         service: "DynamoDB",
         action: "batchWriteItem",
@@ -43,12 +43,39 @@ export class BoardgameAppStack extends cdk.Stack {
             [boardgameTable.tableName]: generateBatch(boardgames),
           },
         },
-        physicalResourceId: custom.PhysicalResourceId.of("moviesddbInitData"), 
+        physicalResourceId: custom.PhysicalResourceId.of("boardgamesddbInitData"), 
       },
       policy: custom.AwsCustomResourcePolicy.fromSdkCalls({
         resources: [boardgameTable.tableArn],
       }),
     });
+
+    const getBoardgameByIdFn = new lambdanode.NodejsFunction(
+      this,
+      "GetBoardgameByIdFn",
+      {
+        architecture: lambda.Architecture.ARM_64,
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: `${__dirname}/../lambdas/getBoardgameById.ts`,
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
+        environment: {
+          TABLE_NAME: boardgameTable.tableName,
+          REGION: 'eu-west-1',
+        },
+      }
+    );
+
+    const getBoardgameByIdURL = getBoardgameByIdFn.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      cors: {
+        allowedOrigins: ["*"],
+      },
+    });
+
+    boardgameTable.grantReadData(getBoardgameByIdFn)
+
+    new cdk.CfnOutput(this, "Get Boardgame Function Url", { value: getBoardgameByIdURL.url });
 
     new cdk.CfnOutput(this, "Simple Function Url", { value: boardgameFnURL.url });
 
