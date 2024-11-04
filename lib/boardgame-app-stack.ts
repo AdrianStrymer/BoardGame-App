@@ -5,6 +5,7 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as custom from "aws-cdk-lib/custom-resources";
 import { generateBatch } from "../shared/util";
 import {boardgames, publishers} from "../seed/boardgames";
+import * as apig from "aws-cdk-lib/aws-apigateway";
 
 import { Construct } from 'constructs';
 
@@ -84,6 +85,7 @@ export class BoardgameAppStack extends cdk.Stack {
     memorySize: 128,
     environment: {
       PUBLISHER_TABLE_NAME: publisherTable.tableName,
+      BOARDGAME_TABLE_NAME: boardgameTable.tableName,
       REGION: "eu-west-1",
 },
 }
@@ -97,6 +99,7 @@ const getPublishersURL = getPublishersFn.addFunctionUrl({
 });    
 
 publisherTable.grantReadData(getPublishersFn);
+boardgameTable.grantReadData(getPublishersFn);  
 
  new custom.AwsCustomResource(this, "boardgamesddbInitData", {
   onCreate: {
@@ -114,8 +117,6 @@ publisherTable.grantReadData(getPublishersFn);
     resources: [boardgameTable.tableArn, publisherTable.tableArn], 
 }),
 });
-
-
 
     new cdk.CfnOutput(this, "Get Boardgame Function Url", { value: getBoardgameByIdURL.url });
 

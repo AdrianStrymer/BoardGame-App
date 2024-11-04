@@ -4,6 +4,8 @@ import {
   DynamoDBDocumentClient,
   QueryCommand,
   QueryCommandInput,
+  GetCommandInput,
+  GetCommand
 } from "@aws-sdk/lib-dynamodb";
 
 const ddbDocClient = createDocumentClient();
@@ -33,6 +35,8 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     const boardgameId = parseInt(queryParams?.boardgameId);
     let commandInput: QueryCommandInput = {
       TableName: process.env.PUBLISHER_TABLE_NAME,
+      KeyConditionExpression: "boardgameId = :m",
+      ExpressionAttributeValues: { ":m": boardgameId },
  };
      if ("pubName" in queryParams) {
       commandInput = {
@@ -43,19 +47,20 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
           ":a": queryParams.pubName,
  },
  };
- } else {
-      commandInput = {
- ...commandInput,
-        KeyConditionExpression: "boardgameId = :m",
-        ExpressionAttributeValues: {
-          ":m": boardgameId,
- },
- };
- }
+ } 
 
-    const commandOutput = await ddbDocClient.send(
-      new QueryCommand(commandInput)
- );
+ const commandOutput = await ddbDocClient.send(new QueryCommand(commandInput));
+ let response : any = { data: commandOutput.Items };
+
+ 
+ if (queryParams.facts === "true") {
+   const boardgameCommandInput: GetCommandInput = {
+     TableName: process.env.BOARDGAME_TABLE_NAME,
+     Key: { id: boardgameId },
+   };
+   const boardgameOutput = await ddbDocClient.send(new GetCommand(boardgameCommandInput));
+   response.boardgame = boardgameOutput.Item;
+ }
 
     return {
       statusCode: 200,
@@ -63,7 +68,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         "content-type": "application/json",
  },
       body: JSON.stringify({
-        data: commandOutput.Items,
+        response
  }),
  };
  } catch (error: any) {
