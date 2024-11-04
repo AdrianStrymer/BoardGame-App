@@ -117,6 +117,26 @@ boardgameTable.grantReadData(getPublishersFn);
     resources: [boardgameTable.tableArn, publisherTable.tableArn], 
 }),
 });
+ 
+const api = new apig.RestApi(this, "RestAPI", {
+  description: "demo api",
+  deployOptions: {
+    stageName: "dev",
+  },
+  defaultCorsPreflightOptions: {
+    allowHeaders: ["Content-Type", "X-Amz-Date"],
+    allowMethods: ["OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowCredentials: true,
+    allowOrigins: ["*"],
+  },
+});
+
+
+const boardgameEndpoint = api.root.addResource("boardgames").addResource("{boardgameId}");
+boardgameEndpoint.addMethod(
+  "GET",
+  new apig.LambdaIntegration(getBoardgameByIdFn, { proxy: true })
+);
 
     new cdk.CfnOutput(this, "Get Boardgame Function Url", { value: getBoardgameByIdURL.url });
 
