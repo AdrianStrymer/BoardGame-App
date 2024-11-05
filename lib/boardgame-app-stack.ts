@@ -117,6 +117,18 @@ boardgameTable.grantReadData(getPublishersFn);
     resources: [boardgameTable.tableArn, publisherTable.tableArn], 
 }),
 });
+
+const newBoardgameFn = new lambdanode.NodejsFunction(this, "AddBoardgameFn", {
+  architecture: lambda.Architecture.ARM_64,
+  runtime: lambda.Runtime.NODEJS_16_X,
+  entry: `${__dirname}/../lambdas/addBoardgame.ts`,
+  timeout: cdk.Duration.seconds(10),
+  memorySize: 128,
+  environment: {
+    TABLE_NAME: boardgameTable.tableName,
+    REGION: "eu-west-1",
+  },
+});
  
 const api = new apig.RestApi(this, "RestAPI", {
   description: "demo api",
@@ -132,11 +144,20 @@ const api = new apig.RestApi(this, "RestAPI", {
 });
 
 
-const boardgameEndpoint = api.root.addResource("boardgames").addResource("{boardgameId}");
+const boardgamesEndpoint = api.root.addResource("boardgames");
+
+boardgamesEndpoint.addMethod(
+  "POST",
+  new apig.LambdaIntegration(newBoardgameFn, { proxy: true })
+);
+
+const boardgameEndpoint = boardgamesEndpoint.addResource("{boardgameId}");
 boardgameEndpoint.addMethod(
   "GET",
   new apig.LambdaIntegration(getBoardgameByIdFn, { proxy: true })
 );
+
+boardgameTable.grantReadWriteData(newBoardgameFn)
 
     new cdk.CfnOutput(this, "Get Boardgame Function Url", { value: getBoardgameByIdURL.url });
 
