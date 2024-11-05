@@ -7,6 +7,13 @@ import {
   GetCommandInput,
   GetCommand
 } from "@aws-sdk/lib-dynamodb";
+import Ajv from "ajv";
+import schema from "../shared/types.schema.json";
+
+const ajv = new Ajv();
+const isValidQueryParams = ajv.compile(
+  schema.definitions["PublisherQueryParams"] || {}
+);
 
 const ddbDocClient = createDocumentClient();
 
@@ -32,6 +39,18 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         body: JSON.stringify({ message: "Missing boardgame Id parameter" }),
  };
  }
+ if (!isValidQueryParams(queryParams)) {
+  return {
+    statusCode: 500,
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      message: `Incorrect type. Must match Query parameters schema`,
+      schema: schema.definitions["PublisherQueryParams"],
+    }),
+  };
+}
     const boardgameId = parseInt(queryParams?.boardgameId);
     let commandInput: QueryCommandInput = {
       TableName: process.env.PUBLISHER_TABLE_NAME,

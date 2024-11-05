@@ -157,6 +157,12 @@ boardgameEndpoint.addMethod(
   new apig.LambdaIntegration(getBoardgameByIdFn, { proxy: true })
 );
 
+const publisherEndpoint = boardgamesEndpoint.addResource("publishers");
+publisherEndpoint.addMethod(
+    "GET",
+    new apig.LambdaIntegration(getPublishersFn, { proxy: true })
+);
+
 boardgameTable.grantReadWriteData(newBoardgameFn)
 
     new cdk.CfnOutput(this, "Get Boardgame Function Url", { value: getBoardgameByIdURL.url });
