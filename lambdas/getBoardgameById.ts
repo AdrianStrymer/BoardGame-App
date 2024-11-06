@@ -7,6 +7,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
   try {
     console.log("[EVENT]", JSON.stringify(event));
     const parameters  = event?.pathParameters;
+    const queryParams = event?.queryStringParameters;
     const boardgameId = parameters?.boardgameId ? parseInt(parameters.boardgameId) : undefined;
 
     if (!boardgameId) {
@@ -36,7 +37,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     const body = {
       data: commandOutput.Item,
     };
-
 
     return {
       statusCode: 200,

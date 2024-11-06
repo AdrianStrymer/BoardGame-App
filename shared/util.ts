@@ -1,7 +1,7 @@
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { Boardgame, Publisher } from "./types";
 
-type Entity = Boardgame | Publisher;  // NEW
+type Entity = Boardgame | Publisher;  
 export const generateItem = (entity: Entity) => {
   return {
     PutRequest: {

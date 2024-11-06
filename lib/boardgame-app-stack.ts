@@ -67,12 +67,6 @@ export class BoardgameAppStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       tableName: "Publishers",
  });
-/*
-    publisherTable.addLocalSecondaryIndex({
-      indexName: "roleIx",
-      sortKey: { name: "roleName", type: dynamodb.AttributeType.STRING },
- });
- */
 
  const getPublishersFn = new lambdanode.NodejsFunction(
   this,
@@ -129,6 +123,20 @@ const newBoardgameFn = new lambdanode.NodejsFunction(this, "AddBoardgameFn", {
     REGION: "eu-west-1",
   },
 });
+
+const updateBoardgameFn = new lambdanode.NodejsFunction(this, "UpdateBoardgameFn", {
+  architecture: lambda.Architecture.ARM_64,
+  runtime: lambda.Runtime.NODEJS_16_X,
+  entry: `${__dirname}/../lambdas/updateBoardgame.ts`,
+  timeout: cdk.Duration.seconds(10),
+  memorySize: 128,
+  environment: {
+    TABLE_NAME: boardgameTable.tableName,
+    REGION: "eu-west-1",
+  },
+});
+
+boardgameTable.grantReadWriteData(updateBoardgameFn);
  
 const api = new apig.RestApi(this, "RestAPI", {
   description: "demo api",
@@ -161,6 +169,11 @@ const publisherEndpoint = boardgamesEndpoint.addResource("publishers");
 publisherEndpoint.addMethod(
     "GET",
     new apig.LambdaIntegration(getPublishersFn, { proxy: true })
+);
+
+boardgameEndpoint.addMethod(
+  "PUT",
+  new apig.LambdaIntegration(updateBoardgameFn, { proxy: true })
 );
 
 boardgameTable.grantReadWriteData(newBoardgameFn)
