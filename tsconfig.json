@@ -8,7 +8,7 @@
     ],
     "declaration": true,
     "strict": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "strictNullChecks": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
@@ -29,6 +29,6 @@
     "cdk.out"
   ],
   "include": [
-    "shared/*.json"
+    "shared/*.json",
   ]
 }

@@ -1,3 +1,4 @@
+/*
 import * as cdk from 'aws-cdk-lib';
 import * as lambdanode from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -187,4 +188,43 @@ boardgameTable.grantReadWriteData(newBoardgameFn)
  });
 
   }
+}
+  */
+
+import * as cdk from "aws-cdk-lib";
+import { Construct } from "constructs";
+import { UserPool } from "aws-cdk-lib/aws-cognito";
+import { AuthApi } from './auth-api'
+import {BoardgameAppApi } from './boardgame-app-api'
+export class BoardgameAppStack extends cdk.Stack {
+
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
+
+    const userPool = new UserPool(this, "UserPool", {
+      signInAliases: { username: true, email: true },
+      selfSignUpEnabled: true,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    const userPoolId = userPool.userPoolId;
+
+    const appClient = userPool.addClient("AppClient", {
+      authFlows: { userPassword: true },
+    });
+
+    const userPoolClientId = appClient.userPoolClientId;
+
+    new AuthApi(this, 'AuthServiceApi', {
+      userPoolId: userPoolId,
+      userPoolClientId: userPoolClientId,
+    });
+
+    new BoardgameAppApi(this, 'BoardgameAppApi', {
+      userPoolId: userPoolId,
+      userPoolClientId: userPoolClientId,
+    } );
+
+  } 
+
 }
