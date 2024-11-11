@@ -9,6 +9,8 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as custom from "aws-cdk-lib/custom-resources";
 import { generateBatch } from "../shared/util";
 import {boardgames, publishers} from "../seed/boardgames";
+import { IamResource } from "aws-cdk-lib/aws-appsync";
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 type BoardgameAppApiProps = {
   userPoolId: string;
@@ -46,6 +48,14 @@ export class BoardgameAppApi extends Construct {
         tableName: "Publishers",
    });
 
+   const translationsTable = new dynamodb.Table(this, "TranslationsTable", {
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    partitionKey: { name: "boardgameId", type: dynamodb.AttributeType.NUMBER },
+    sortKey: { name: "languageCode", type: dynamodb.AttributeType.STRING },
+    removalPolicy: cdk.RemovalPolicy.DESTROY,
+    tableName: "Translations",
+});
+
    new custom.AwsCustomResource(this, "boardgamesddbInitData", {
     onCreate: {
       service: "DynamoDB",
@@ -53,7 +63,7 @@ export class BoardgameAppApi extends Construct {
       parameters: {
         RequestItems: {
           [boardgameTable.tableName]: generateBatch(boardgames),
-          [publisherTable.tableName]: generateBatch(publishers),  
+          [publisherTable.tableName]: generateBatch(publishers),   
   },
   },
       physicalResourceId: custom.PhysicalResourceId.of("moviesddbInitData"), 
@@ -124,6 +134,25 @@ export class BoardgameAppApi extends Construct {
         }
       );
 
+      const translateBoardgameFn = new lambdanode.NodejsFunction(this, "TranslateBoardgameFn", {
+        architecture: lambda.Architecture.ARM_64,
+        runtime: lambda.Runtime.NODEJS_16_X,
+        entry: `${__dirname}/../lambdas/translate.ts`,
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
+        environment: {
+          TABLE_NAME: boardgameTable.tableName,
+          TRANSLATIONS_TABLE_NAME: translationsTable.tableName,
+          REGION: "eu-west-1",
+        },
+      });
+
+      translateBoardgameFn.addToRolePolicy(new iam.PolicyStatement ({
+        actions: ['translate:TranslateText'],
+        resources: ['*']
+      })
+      )
+
       publisherTable.grantReadData(getPublishersFn);
       boardgameTable.grantReadData(getPublishersFn); 
       boardgameTable.grantReadWriteData(updateBoardgameFn); 
@@ -131,7 +160,8 @@ export class BoardgameAppApi extends Construct {
       publisherTable.grantReadData(getPublishersFn);
       boardgameTable.grantReadData(getPublishersFn);  
       boardgameTable.grantReadData(getBoardgameByIdFn)
-
+      translationsTable.grantReadWriteData(translateBoardgameFn);
+      boardgameTable.grantReadWriteData(translateBoardgameFn)
 
       const authorizerFn = new node.NodejsFunction(this, "AuthorizerFn", {
         architecture: lambda.Architecture.ARM_64,
@@ -159,6 +189,8 @@ export class BoardgameAppApi extends Construct {
 
       const boardgamesEndpoint = boardgameAppApi.root.addResource("boardgames");
 
+
+
 boardgamesEndpoint.addMethod("POST", new apig.LambdaIntegration(newBoardgameFn), {
     authorizer: requestAuthorizer,
     authorizationType: apig.AuthorizationType.CUSTOM,
@@ -169,6 +201,12 @@ boardgameEndpoint.addMethod(
   "GET",
   new apig.LambdaIntegration(getBoardgameByIdFn, { proxy: true })
 );
+
+const translationEndpoint = boardgameEndpoint.addResource("translation");
+  translationEndpoint.addMethod(
+    "GET",
+    new apig.LambdaIntegration(translateBoardgameFn, { proxy: true })
+  );
 
 const publisherEndpoint = boardgamesEndpoint.addResource("publishers");
 publisherEndpoint.addMethod(
@@ -182,56 +220,4 @@ boardgameEndpoint.addMethod("PUT", new apig.LambdaIntegration(updateBoardgameFn)
   });
     }
 }
-    /*
-    const appCommonFnProps = {
-      architecture: lambda.Architecture.ARM_64,
-      timeout: cdk.Duration.seconds(10),
-      memorySize: 128,
-      runtime: lambda.Runtime.NODEJS_16_X,
-      handler: "handler",
-      environment: {
-        USER_POOL_ID: props.userPoolId,
-        CLIENT_ID: props.userPoolClientId,
-        REGION: cdk.Aws.REGION,
-      },
-    };
-    
-
-
-    const protectedRes = appApi.root.addResource("protected");
-
-    const publicRes = appApi.root.addResource("public");
-
-    const protectedFn = new node.NodejsFunction(this, "ProtectedFn", {
-      ...appCommonFnProps,
-      entry: "./lambda/protected.ts",
-    });
-
-    const publicFn = new node.NodejsFunction(this, "PublicFn", {
-      ...appCommonFnProps,
-      entry: "./lambda/public.ts",
-    });
-
-    const authorizerFn = new node.NodejsFunction(this, "AuthorizerFn", {
-      ...appCommonFnProps,
-      entry: "./lambda/auth/authorizer.ts",
-    });
-
-    const requestAuthorizer = new apig.RequestAuthorizer(
-      this,
-      "RequestAuthorizer",
-      {
-        identitySources: [apig.IdentitySource.header("cookie")],
-        handler: authorizerFn,
-        resultsCacheTtl: cdk.Duration.minutes(0),
-      }
-    );
-
-    protectedRes.addMethod("GET", new apig.LambdaIntegration(protectedFn), {
-      authorizer: requestAuthorizer,
-      authorizationType: apig.AuthorizationType.CUSTOM,
-    });
-
-    publicRes.addMethod("GET", new apig.LambdaIntegration(publicFn));
-  }
-}*/
+  

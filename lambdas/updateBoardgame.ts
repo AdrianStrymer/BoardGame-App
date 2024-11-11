@@ -63,7 +63,7 @@ try {
 
   const updateParams: any = {
     TableName: process.env.TABLE_NAME,
-    Key: { id: Number(boardgameId) },
+    Key: { id: boardgameId },
     UpdateExpression:
       "SET #name = :name, release_year = :release_year, country_of_origin = :country_of_origin, description = :description",
     ExpressionAttributeNames: {
