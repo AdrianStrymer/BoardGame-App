@@ -34,8 +34,7 @@ try {
       };
     }
 
-
-  const boardgameId = event.pathParameters?.boardgameId;
+  const boardgameId = parseInt(event.pathParameters?.boardgameId, 10);
   const body = event.body ? JSON.parse(event.body) : undefined;
 
   if (!boardgameId || !body) {
@@ -84,7 +83,7 @@ try {
         headers: {
           "content-type": "application/json",
         },
-        body: JSON.stringify({ message: "Boardgame added" }),
+        body: JSON.stringify({ message: "Boardgame updated" }),
       };
     } catch (error: any) {
       console.log(JSON.stringify(error));

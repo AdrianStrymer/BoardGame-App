@@ -6,27 +6,25 @@ __Demo:__ ... link to your YouTube video demonstration ......
 
 ### Context.
 
-State the context you chose for your web API and detail the attributes stored in the main database table.
+The Boardgame App stores information about different boardgames as well as their publishers.
+
+The boardgame table has the following attributes:
+id (number): The id of the boardgame (Primary Key)
+name (string): The name of the boardgame
+release_year (number): The year in which the boardgame was released
+country_of_origin (string): The country in which the boardgame originated from
+description (string): A summary of what the boardgame is about
 
 ### App API endpoints.
-
-[ Provide a bullet-point list of the app's endpoints (excluding the Auth API) you have successfully implemented. ]
-e.g.
  
-+ POST /thing - add a new 'thing'.
-+ GET /thing/{partition-key}/ - Get all the 'things' with a specified partition key.
-+ GEtT/thing/{partition-key}?attributeX=value - Get all the 'things' with a specified partition key value and attributeX satisfying the condition .....
-
-### Update constraint (if relevant).
-
-[Briefly explain your design for the solution to the PUT/Update constraint 
-- only the user who added an item to the main table could update it.]
++ POST /boardgames - Adds a new boardgame to the table.
++ GET /boardgames/id - Gets the boardgame with the specified id
++ GET /boardgames/publishers?boardgameId=value&pubName=value - Gets the publishers that match the given boardgameId and name of the publisher
++ PUT /boardgames/id - Updates the boardgame with the specified id
++ GET /boardgames/id/translation?language=value - Gets the translation of the description of the boardgame with the specified id
 
 ### Translation persistence (if relevant).
 
-[Briefly explain your design for the solution to avoid repeat requests to Amazon Translate - persist translations so that Amazon Translate can be bypassed for repeat translation requests.]
+The attribute that is being translated is the description of the boardgame. A translation table was created to store translations that have been done before. The code checks if a requested translation is in the translation table and if it is, it is taken from the table. If it is not in the table, Amazon Translate is called to translate the given boardgame and the translation is then stored in the table for future use.
 
-###  Extra (If relevant).
-
-[ State whether you have created a multi-stack solution for this assignment or used lambda layers to speed up update deployments. Also, mention any aspect of the CDK framework __that was not covered in the lectures that you used in this assignment. ]
 
